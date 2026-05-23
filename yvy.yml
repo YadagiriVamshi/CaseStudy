@@ -1,0 +1,24 @@
+trigger: none
+
+pool:
+  vmImage: 'windows-latest'
+
+steps:
+- task: Maven@3
+  displayName: 'Build Spring Boot Application'
+  inputs:
+    mavenPomFile: 'pom.xml'
+    goals: 'clean package -DskipTests'
+    publishJUnitResults: false
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: '17'
+
+- script: dir $(System.DefaultWorkingDirectory) /s
+  displayName: 'List files (debug)'
+
+- task: AzureWebApp@1
+  displayName: 'Deploy to Azure App Service'
+  inputs:
+    azureSubscription: 'pgsn-intern-arm-svc'
+    appName: 'vamshiapp'
+    package: '$(System.DefaultWorkingDirectory)/**/target/*.jar'
