@@ -1,0 +1,66 @@
+trigger: none
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  nodeVersion: '22.x'
+  azureWebAppName: 'vamshipgsn'
+
+stages:
+
+# =========================
+# BUILD STAGE
+# =========================
+- stage: Build
+  displayName: Build React App
+  jobs:
+  - job: BuildJob
+    steps:
+
+    # Install Node
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '$(nodeVersion)'
+      displayName: 'Install Node.js'
+
+    # Install dependencies
+    - script: npm install
+      displayName: 'Install dependencies'
+
+    # Build React app
+    - script: npm run build
+      displayName: 'Build React app'
+
+    # Publish build folder
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: 'build'
+        ArtifactName: 'drop'
+      displayName: 'Publish build artifact'
+
+
+# =========================
+# DEPLOY STAGE
+# =========================
+- stage: Deploy
+  displayName: Deploy to Azure Web App
+  dependsOn: Build
+  jobs:
+  - job: DeployJob
+    steps:
+
+    # Download build
+    - task: DownloadBuildArtifacts@1
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: 'drop'
+        downloadPath: '$(System.DefaultWorkingDirectory)'
+
+    # Deploy to Azure Web App
+    - task: AzureWebApp@1
+      inputs:
+        azureSubscription: 'pgsn-intern-arm-svc'
+        appName: 'vamshipgsn'
+        package: '$(System.DefaultWorkingDirectory)\drop'
